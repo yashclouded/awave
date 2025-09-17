@@ -144,31 +144,27 @@
                         varying float vAudioIntensity;
                         
                         void main() {
-                            vec3 deepBlue = vec3(0.1, 0.3, 0.9);     //blue
-                            vec3 purple = vec3(0.6, 0.2, 0.9);       //Purple
-                            vec3 hotPink = vec3(1.0, 0.3, 0.6);      // pink
-                            vec3 cyan = vec3(0.2, 0.8, 1.0);         //Cyan
+                            // Base palette
+                            vec3 deepBlue = vec3(0.1, 0.3, 0.9);
+                            vec3 purple   = vec3(0.6, 0.2, 0.9);
+                            vec3 hotPink  = vec3(1.0, 0.3, 0.6);
+                            vec3 cyan     = vec3(0.2, 0.8, 1.0);
                             
-                            float gradientPos = (vPosition.z + 7.5) / 15.0; // Normalize Z position
-                            gradientPos = clamp(gradientPos, 0.0, 1.0);
+                            float zNorm = clamp((vPosition.z + 7.5) / 15.0, 0.0, 1.0);
                             
-                            float beatShift = sin(time * 0.15 + vAudioIntensity * 0.8) * 0.5 + 0.5;
-                            float audioShift = vAudioIntensity * 0.3;
+                            float discoT = 0.5 + 0.5 * sin(time * (0.6 + vAudioIntensity * 2.0));
+                            vec3 bandA = mix(deepBlue, purple, zNorm);
+                            vec3 bandB = mix(cyan, hotPink, zNorm);
+                            vec3 color = mix(bandA, bandB, discoT);
                             
-                            vec3 color;
-                            if (gradientPos < 0.5) {
-                                color = mix(deepBlue, purple, gradientPos * 2.0);
-                            } else {
-                                color = mix(purple, hotPink, (gradientPos - 0.5) * 2.0);
-                            }
+                            float beatMix = 0.3 * vAudioIntensity;
+                            color = mix(color, cyan, beatMix * 0.6);
+                            color = mix(color, hotPink, beatMix * 0.4);
                             
-                            color = mix(color, cyan, beatShift * 0.2);
-                            color = mix(color, hotPink, audioShift * 0.3);
+                            float strobe = 0.5 + 0.5 * sin(time * 8.0);
+                            color *= (0.9 + vAudioIntensity * 0.2 + strobe * 0.05 * vAudioIntensity);
                             
-                            color *= (0.85 + vAudioIntensity * 0.15);
-                            
-                            float alpha = 0.7 + sin(gradientPos * 3.14159) * 0.2; // Varies from 0.5 to 0.9
-                            
+                            float alpha = 0.65 + sin(zNorm * 3.14159) * 0.25; // 0.4 - 0.9 range
                             gl_FragColor = vec4(color, alpha);
                         }
                     `,
@@ -205,7 +201,9 @@
                     vertexColors: true,
                     linewidth: 5,
                     transparent: true,
-                    opacity: 0.8
+                    opacity: 0.9,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
                 });
                 
                 const audioLine = new THREE.Line(lineGeometry, lineMaterial);
@@ -250,7 +248,9 @@
                     size: 2.3,
                     vertexColors: true,
                     transparent: true,
-                    opacity: 0.6
+                    opacity: 0.7,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
                 });
 
                 this.particles = new THREE.Points(geometry, material);
@@ -775,7 +775,7 @@
                             const targetIntensity = 1 + audioLevel * 0.8;
                             child.intensity += (targetIntensity - child.intensity) * 0.1;
                             
-                            const hue = 0.7 + bassLevel * 0.2;
+                            const hue = 0.7 + bassLevel * 0.2 + Math.sin(time * 0.1) * 0.03; 
                             const saturation = 0.8 + midLevel * 0.2;
                             const lightness = 0.5 + audioLevel * 0.2;
                             child.color.setHSL(hue, saturation, lightness);
@@ -783,7 +783,7 @@
                             const targetIntensity = 0.8 + trebleLevel * 0.6;
                             child.intensity += (targetIntensity - child.intensity) * 0.1;
                             
-                            const hue = 0.8 + trebleLevel * 0.15;
+                            const hue = 0.8 + trebleLevel * 0.15 + Math.cos(time * 0.13) * 0.03; 
                             const saturation = 0.9;
                             const lightness = 0.5 + audioLevel * 0.15;
                             child.color.setHSL(hue, saturation, lightness);
